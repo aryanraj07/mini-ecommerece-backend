@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+model Product{
+  id Int @id @default(autoincrement())
+  title String 
+  description String
+  category  @relation(fields: [id])
+  price Decimal
+  discountPercentage Float?
+  rating Float?
+  stock Int
+  tags ProductTag[]
+  brandId Int
+  brand @relation
+  sku String @unique
+  weight Int
+  dimensions Json?
+  warrantyInformation String?
+  shippingInformation String?
+  availabilityStatus String?
+  reviews Reviews[]
+  returnPolicy String?
+  minimumOrderQuantity Int?
+  meta Json
+  images String[]
+  thumbnail String?
+}
+model Category{
+  id Int @id @default(autoincrement())
+  name String
+}
+model Reviews {
+  rating Int
+  comment String
+  date DateTime
+  reviewerName String
+  reviewerEmail String
+} 
+enum UserRole {
+  USER
+  ADMIN
+}
+model User{
+  id Int @id @default(autoincrement())
+  name String?
+  email String?
+  otpRef String?
+  otpHashed String?
+  otpExpiry DateTime
+  isVerified Boolean @default(false)
+  role UserRole @default(USER)
+  refreshToken String
+  cartItems CartItem[]
+  wishlist Wishlist[]
+  creatadAt DateTime @default(now())
+}
+
+model CartItem{
+  id Int @id @default(autoincrement())
+  userId Int
+  productId Int
+  quantity Int
+  user User
+  product Product @relation(fields: [productId],references: [id])
+  @@unique([userId,productId])
+
+}
+model Wishlist{
+  id Int @id @default(autoincrement())
+  userId Int
+  productId Int
+  quantity Int
+  user User @relation(fields: [userId],references: [id])
+  product Product @relation(fields: [productId],references: [id])
+  @@unique([userId,productId])
+}
+model Tag{
+  id Int @id @default(autoincrement())
+  name String @unique
+  products ProductTag[]
+}
+model ProductTag{
+productId Int
+tagId Int
+product Product @relation(fields: [productId],references: [id])
+tag Tag @relation(fields: [tagId],references: [id])
+@@id([productId,tagId])
+}
+model Review{
+  id Int @id @default(autoincrement())
+  rating Int
+  comment String
+   date    DateTime @default(now())
+  reviewerName String
+  reviewerEmail String
+}
+model Brand {
+  id Int @id @default(autoincrement())
+  name String
+  products Product[]
+}
+
+
+
+
+
