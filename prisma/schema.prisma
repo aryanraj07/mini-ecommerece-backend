@@ -6,47 +6,60 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+ 
 }
+
+
 model Product{
   id Int @id @default(autoincrement())
   title String 
   description String
-  category  @relation(fields: [id])
-  price Decimal
+  categoryId Int
+  category Category @relation(fields: [categoryId], references: [id])
+  price Decimal @db.Decimal(10,2)
   discountPercentage Float?
   rating Float?
   stock Int
   tags ProductTag[]
-  brandId Int
-  brand @relation
+  brandId Int?
+  brand Brand? @relation(fields: [brandId],references: [id])
   sku String @unique
-  weight Int
+  weight Int?
   dimensions Json?
   warrantyInformation String?
   shippingInformation String?
   availabilityStatus String?
   reviews Reviews[]
+  cartItem CartItem[]
+  wishlist Wishlist[]
   returnPolicy String?
   minimumOrderQuantity Int?
-  meta Json
+  meta Json?
   images String[]
   thumbnail String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([brandId])
+  @@index([categoryId])
 }
 model Category{
   id Int @id @default(autoincrement())
   name String
+  products Product[]
 }
 model Reviews {
+  id Int @id @default(autoincrement())
   rating Int
   comment String
-  date DateTime
+  date DateTime @default(now())
   reviewerName String
   reviewerEmail String
+productId Int
+product Product @relation(fields: [productId],references: [id])
 } 
 enum UserRole {
   USER
@@ -72,7 +85,7 @@ model CartItem{
   userId Int
   productId Int
   quantity Int
-  user User
+  user User @relation(fields: [userId],references: [id])
   product Product @relation(fields: [productId],references: [id])
   @@unique([userId,productId])
 
