@@ -139,3 +139,177 @@ const appRouter = router({
 // This type will later used by fronted
 export type AppRouter = typeof appRouter;
 ```
+
+### Nowe we will create routes
+
+> Create a folder routes
+
+### We will Start with product routes
+
+> Create a folder prpoduct and inside it a file product.routes.ts
+
+routes/product/product.routes.ts
+
+We will fist write for getAllProducts
+
+```ts
+import { router, publicProcedure } from "../../trpc.js";
+export const productRouter = router({
+  getAllProducts: publicProcedure
+    .input()
+    .output()
+    .query(() => {}),
+});
+```
+
+### We will write models for product
+
+### What prisma already gives
+
+> ✅ Types
+> ✅ Autocomplete
+> ✅ Compile-time safety
+> ✅ DB structure
+> ✅ Migrations
+
+### What prisma does not do
+
+Prisma does NOT:
+
+> ❌ validate HTTP request body
+> ❌ validate user input
+> ❌ check required fields before hitting DB
+> ❌ sanitize strings
+
+### ✅ Two different uses of Zod (important)
+
+There are 2 styles:
+
+> 1️⃣ Validation style (forms/admin)
+
+Validate user input only
+Small schemas
+
+2️⃣ Contract style (tRPC/OpenAPI) ← YOU
+
+Define full API response types
+Bigger schemas
+
+We’re doing #2.
+
+## Install zod
+
+```pnpm
+pnpm i zod
+```
+
+### Converting prisma schema to zod
+
+> mportant conversion rules (Prisma → Zod)
+> Prisma API JSON Zod
+> Int number z.number().int()
+> Float/Decimal number z.number()
+> String string z.string()
+> Boolean boolean z.boolean()
+> DateTime Date z.date()
+> Json object z.unknown() / z.any()
+> String[] string[] z.array(z.string())
+> Relation object nested schema
+> @default(now()) server generated optional() in output
+> autoincrement id number z.number()
+
+### Now in product.routes.ts
+
+> writinq query , if we want to query we should use trpc client
+> but we will not use that ,we will go through open api spec
+> SO first thing
+
+### We will mount this app router inside express application
+
+> as it is just routes we need to expose it to listen
+
+### For docs
+
+Visit [Google](https://trpc.io/docs/server/adapters) for more information.
+
+> tRPC is not a server on its own, and must therefore be served using other hosts, such as a simple Node.js HTTP Server, Express, or even Next.js. Most tRPC features are the same no matter which backend you choose. Adapters act as the glue between the host system and your tRPC API.
+> import express adaptor in trpc.ts
+
+```ts
+import * as trpcExpress from "@trpc/server/adapters/express";
+```
+
+### Create a context and export it
+
+> create a file
+> server/context.ts
+
+```ts
+import * as trpcExpress from "@trpc/server/adapters/express";
+const createContext = ({
+  req,
+  res,
+}: trpcExpress.CreateExpressContextOptions) => ({}); // no context
+export type Context = Awaited<ReturnType<typeof createContext>>;
+```
+
+### In src/index.ts use now
+
+```ts
+app.use(
+  "/trpc",
+  trpcExpress.createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  }),
+);
+```
+
+## Now to get open api spec
+
+```pnpm
+ pnpm i trpc-to-openapi
+```
+
+> Open link for documentaion
+> VIew[Google](https://www.npmjs.com/package/trpc-to-openapi)
+> trpc.ts
+
+```ts
+import type { OpenApiMeta } from "trpc-to-openapi";
+const t = initTRPC.context<Context>().meta<OpenApiMeta>().create();
+```
+
+> Now we will use this meta in product.routes.ts
+
+```ts
+export const productRouter = router({
+  getAllProducts: publicProcedure
+    .meta({
+      openapi: {
+        method: "GET",
+        path: "/products",
+        tags: ["Product"],
+        description: "Returns all products",
+      },
+    })
+```
+
+> Now we will expose this openapi spec meta data
+> in src/index.ts
+
+```ts
+import { generateOpenApiDocument } from "trpc-to-openapi";
+export const openApiDocument = generateOpenApiDocument(appRouter, {
+  title: "Mini Ecommerce App",
+  baseUrl: "http://localhost:8000",
+  version: "1.0.0",
+});
+```
+
+## Now we can even mount open api spec
+
+```ts
+import fs from "fs/promises";
+fs.writeFile("openapi-specification.json", JSON.stringify(openApiDocument));
+```

@@ -1,6 +1,4 @@
 import "dotenv/config";
-console.log("ENV URL:", process.env.DATABASE_URL);
-
 import { faker } from "@faker-js/faker";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "@prisma/client";
