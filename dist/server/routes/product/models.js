@@ -1,6 +1,5 @@
 import z from "zod";
 // Enums
-export const userRoleEnum = z.enum(["USER", "ADMIN"]);
 // Base Entities
 export const categoryModel = z.object({
     id: z.number().int().describe("Auto increment category id"),
@@ -57,36 +56,32 @@ export const productModel = z.object({
     createdAt: z.date().describe("Created timestamps"),
     updatedAt: z.date().describe("Last updated timestamps"),
 });
+export const productPreviewModal = z.object({
+    id: z.number(),
+    title: z.string(),
+    price: z.number(),
+    discountPercentage: z.number(),
+    discountedPrice: z.number().optional(),
+    thumbnail: z.string(),
+    stock: z.number(),
+    rating: z.number(),
+    brandName: z.string(),
+    tags: z.array(tagModel).optional(),
+    category: categoryModel.optional(),
+    brand: brandModel.optional().nullable(),
+});
 // User
-export const userModel = z.object({
-    id: z.number().int(),
-    name: z.string().nullable().describe("Name of the user"),
-    email: z.string().email().nullable().describe("Email of the user"),
-    otpRef: z.string().nullable().describe("Reference of otp"),
-    otpHased: z.string().nullable().describe("Hashed otp to be stored in db"),
-    otpExpiry: z.date(),
-    isVerified: z.boolean().default(false),
-    role: userRoleEnum.default("USER"),
-    refreshToken: z.string(),
-    createdAt: z.date(),
-});
-export const cartItemModal = z.object({
-    id: z.number().int(),
-    userId: z.number().int(),
-    productId: z.number().int(),
-    quantity: z.number().int().min(1),
-    product: productModel.nullable(),
-});
-export const wishListModel = z.object({
-    id: z.number().int(),
-    userId: z.number().int(),
-    productId: z.number().int(),
-    quantity: z.number().int().min(1),
-    product: productModel.nullable(),
-});
 export const getAllProductOutput = z.object({
-    products: z.array(productModel),
+    products: z.array(productPreviewModal),
+    meta: z.object({
+        current_page: z.number(),
+        last_page: z.number(),
+        total: z.number(),
+    }),
 });
 export const getSingleProductOutput = z.object({
     product: productModel,
 });
+//************************* */
+// Filter data
+// for category brand and tag

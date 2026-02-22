@@ -313,3 +313,30 @@ export const openApiDocument = generateOpenApiDocument(appRouter, {
 import fs from "fs/promises";
 fs.writeFile("openapi-specification.json", JSON.stringify(openApiDocument));
 ```
+
+## Session and Otp Model
+
+> Seperated the models for tracking multiple otp request and multi device logout
+
+## Created the user route and the tokens for cookies to the browser send in response
+
+> Install cookies pareser for parsing request cookies
+
+```js
+npm install cookie-parser
+
+```
+
+## Moving forward with checkout and order
+
+Cart → Checkout → Create Order (PENDING)
+↓
+Create Payment Session
+↓
+User Pays
+↓
+Webhook
+↓
+Update Order to SUCCESS
+↓
+Clear User Cart

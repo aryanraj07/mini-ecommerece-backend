@@ -34,8 +34,9 @@ model Product{
   shippingInformation String?
   availabilityStatus String?
   reviews Reviews[]
+  orderItem OrderItem[]
   cartItem CartItem[]
-  wishlist Wishlist[]
+  wishlist WishlistItem[]
   returnPolicy String?
   minimumOrderQuantity Int?
   meta Json?
@@ -68,33 +69,51 @@ enum UserRole {
 model User{
   id Int @id @default(autoincrement())
   name String?
+  phoneNumber String @unique
   email String?
-  otpRef String?
-  otpHashed String?
-  otpExpiry DateTime
   isVerified Boolean @default(false)
   role UserRole @default(USER)
-  refreshToken String
+  order Order[]
+  session Session[]
   cartItems CartItem[]
-  wishlist Wishlist[]
-  creatadAt DateTime @default(now())
+  wishlist WishlistItem[]
+  createdAt DateTime @default(now())
+  
 }
+model Session{
+  id Int @id @default(autoincrement())
+  userId Int
+  refreshToken String @unique
+  user User @relation(fields: [userId],references: [id],onDelete: Cascade)
+  createdAt DateTime @default(now())
 
+}
+model Otp{
+id Int @id @default(autoincrement())
+phoneNumber String
+otpHashed String
+expiresAt   DateTime 
+attempts Int @default(0)
+createdAt DateTime @default(now())
+@@index([phoneNumber])
+  
+}
 model CartItem{
   id Int @id @default(autoincrement())
-  userId Int
+  userId Int?
+  guestId String?
   productId Int
   quantity Int
-  user User @relation(fields: [userId],references: [id])
+  user User? @relation(fields: [userId],references: [id])
   product Product @relation(fields: [productId],references: [id])
   @@unique([userId,productId])
+  @@unique([guestId,productId])
 
 }
-model Wishlist{
+model WishlistItem{
   id Int @id @default(autoincrement())
   userId Int
   productId Int
-  quantity Int
   user User @relation(fields: [userId],references: [id])
   product Product @relation(fields: [productId],references: [id])
   @@unique([userId,productId])
@@ -124,8 +143,38 @@ model Brand {
   name String
   products Product[]
 }
-
-
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+enum OrderStatus {
+  CREATED
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+model Order{
+  id Int @id @default(autoincrement())
+  // userId , totalAmount, paymentStatus, orderStatus, createdAt, items OrderItems[]
+  userId Int 
+  user User? @relation(fields: [userId],references: [id])
+  totalAmount Float
+  paymentStatus PaymentStatus @default(PENDING)
+  orderStatus OrderStatus @default(CREATED)
+  createdAt DateTime @default(now())
+items OrderItem[]
+}
+model OrderItem{
+  id Int @id @default(autoincrement())
+  orderId Int
+  productId Int
+  quantity Int
+  price Float
+  order Order @relation(fields: [orderId],references: [id])
+  product Product @relation(fields: [productId],references: [id])
+}
 
 
 
