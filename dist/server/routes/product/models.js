@@ -18,7 +18,7 @@ export const reviewModel = z.object({
     id: z.number().int().describe("Review id"),
     rating: z.number().int().min(1).max(5).describe("Star Rating"),
     comment: z.string().describe("Review text"),
-    date: z.date().describe("Review created date"),
+    createdAt: z.date().describe("Review created date"),
     reviewerName: z.string().describe("Reviewer name"),
     reviewerEmail: z.string().email().describe("Reviewer email"),
 });
@@ -34,7 +34,7 @@ export const productModel = z.object({
         .describe("Discount percentage if available"),
     rating: z.number().nullable().describe("Average rating"),
     stock: z.number().int().describe("Available stock quantity"),
-    sku: z.string().describe("Unique stock keeping unit"),
+    sku: z.string().nullable().describe("Unique stock keeping unit"),
     weight: z.number().nullable().describe("Weight in grams"),
     dimensions: z.unknown().nullable().describe("Json object storing size info"),
     warrantyInformation: z.string().nullable(),
@@ -82,6 +82,10 @@ export const getAllProductOutput = z.object({
 export const getSingleProductOutput = z.object({
     product: productModel,
 });
+export const similarProductsOutput = z.object({
+    products: z.array(productPreviewModal),
+});
+import { Prisma } from "@prisma/client";
 //************************* */
 // Filter data
 // for category brand and tag

@@ -14,54 +14,69 @@ datasource db {
 }
 
 
-model Product{
-  id Int @id @default(autoincrement())
-  title String 
-  description String
-  categoryId Int
-  category Category @relation(fields: [categoryId], references: [id])
-  price Decimal @db.Decimal(10,2)
-  discountPercentage Float?
-  rating Float?
+model Product {
+  id            Int      @id @default(autoincrement())
+  title         String
+  slug          String   @unique
+  description   String
+  //category realtion
+  categoryId    Int
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  // seller relation
+  sellerId      Int
+  seller        Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  price     Decimal  @db.Decimal(10,2)
+   discountPercentage     Float?
+  rating        Float?
+  totalReviews  Int      @default(0)
   stock Int
-  tags ProductTag[]
+  // product identifiers
+  sku String?
   brandId Int?
-  brand Brand? @relation(fields: [brandId],references: [id])
-  sku String @unique
-  weight Int?
-  dimensions Json?
-  warrantyInformation String?
-  shippingInformation String?
-  availabilityStatus String?
-  reviews Reviews[]
-  orderItem OrderItem[]
-  cartItem CartItem[]
-  wishlist WishlistItem[]
-  returnPolicy String?
-  minimumOrderQuantity Int?
-  meta Json?
-  images String[]
-  thumbnail String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  @@index([brandId])
+  brand Brand? @relation(fields: [brandId],references: [id],onDelete: SetNull)
+  // product info
+   weight                 Float?
+  dimensions             Json?
+  //policies
+  returnPolicy  String?
+  warrantyInformation  String?
+shippingInformation  String?
+minimumOrderQuantity Int @default(1)
+  availabilityStatus     String?
+  tags ProductTag[]
+  thumbnail     String?
+  images        String[]
+    meta                   Json?
+    //updated at
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  reviews       Review[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+  orderItems    OrderItem[]
+
   @@index([categoryId])
+  @@index([sellerId])
+    @@index([brandId])
+}
+
+model Seller {
+  id Int @id @default(autoincrement())
+  name String
+  logo String?
+  rating Float?
+  email String @unique
+  location String?
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+  products Product[]
 }
 model Category{
   id Int @id @default(autoincrement())
   name String
+    slug String @unique  
   products Product[]
 }
-model Reviews {
-  id Int @id @default(autoincrement())
-  rating Int
-  comment String
-  date DateTime @default(now())
-  reviewerName String
-  reviewerEmail String
-productId Int
-product Product @relation(fields: [productId],references: [id])
-} 
 enum UserRole {
   USER
   ADMIN
@@ -78,7 +93,6 @@ model User{
   cartItems CartItem[]
   wishlist WishlistItem[]
   createdAt DateTime @default(now())
-  
 }
 model Session{
   id Int @id @default(autoincrement())
@@ -112,11 +126,13 @@ model CartItem{
 }
 model WishlistItem{
   id Int @id @default(autoincrement())
-  userId Int
+  userId Int?
+    guestId String?
   productId Int
-  user User @relation(fields: [userId],references: [id])
+  user User? @relation(fields: [userId],references: [id])
   product Product @relation(fields: [productId],references: [id])
   @@unique([userId,productId])
+  @@unique([guestId,productId])
 }
 model Tag{
   id Int @id @default(autoincrement())
@@ -134,14 +150,19 @@ model Review{
   id Int @id @default(autoincrement())
   rating Int
   comment String
-   date    DateTime @default(now())
   reviewerName String
   reviewerEmail String
+productId Int
+product Product @relation(fields: [productId],references: [id])
+  createdAt DateTime @default(now())
 }
 model Brand {
-  id Int @id @default(autoincrement())
-  name String
-  products Product[]
+ id        Int      @id @default(autoincrement())
+  name      String   @unique
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  products  Product[]
 }
 enum PaymentStatus {
   PENDING
@@ -157,24 +178,24 @@ enum OrderStatus {
 }
 model Order{
   id Int @id @default(autoincrement())
-  // userId , totalAmount, paymentStatus, orderStatus, createdAt, items OrderItems[]
   userId Int 
   user User? @relation(fields: [userId],references: [id])
-  totalAmount Float
+  totalAmount Decimal @db.Decimal(10,2)
   paymentStatus PaymentStatus @default(PENDING)
+  paymentId String? 
   orderStatus OrderStatus @default(CREATED)
   createdAt DateTime @default(now())
 items OrderItem[]
+@@unique([paymentId])
 }
 model OrderItem{
   id Int @id @default(autoincrement())
   orderId Int
   productId Int
-  quantity Int
-  price Float
+  cartItemId Int
+  quantity Int  
+  price Decimal @db.Decimal(10,2)
   order Order @relation(fields: [orderId],references: [id])
   product Product @relation(fields: [productId],references: [id])
+  
 }
-
-
-

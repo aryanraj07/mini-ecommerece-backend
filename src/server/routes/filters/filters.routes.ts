@@ -55,15 +55,22 @@ export const filterRouter = router({
         _max: { rating: true },
       });
       //dynamic json attribute
-      const rawMeta: any[] = await ctx.prisma.$queryRawUnsafe(
-        `  SELECT DISTINCT jsonb_object_keys(meta) AS key FROM "Product"`,
-      );
+      const rawMeta: any[] = await ctx.prisma.$queryRaw`
+  SELECT DISTINCT jsonb_object_keys(meta) AS key
+  FROM "Product"
+`;
+
       const attributes: Record<string, string[]> = {};
+
       for (const row of rawMeta) {
         const key = row.key;
+
         const values: any[] = await ctx.prisma.$queryRawUnsafe(
-          `SELECT DISTINCT meta->>'${key} As value FROM "PRODUCT"WHERE meta->>'${key}' IS NOT NULL`,
+          `SELECT DISTINCT meta->>'${key}' AS value
+     FROM "Product"
+     WHERE meta->>'${key}' IS NOT NULL`,
         );
+
         attributes[key] = values.map((v) => v.value);
       }
       return {

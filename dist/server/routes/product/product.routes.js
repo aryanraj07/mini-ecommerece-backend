@@ -1,6 +1,6 @@
 import z, { number } from "zod";
 import { router, publicProcedure } from "../../trpc.js";
-import { getAllProductOutput, getSingleProductOutput, productModel, } from "./models.js";
+import { getAllProductOutput, getSingleProductOutput, productModel, productPreviewModal, similarProductsOutput, } from "./models.js";
 import { TRPCError } from "@trpc/server";
 export const productRouter = router({
     getAllProducts: publicProcedure
@@ -164,5 +164,83 @@ export const productRouter = router({
             },
         };
     }),
+    getSimilarProducts: publicProcedure
+        .meta({
+        openapi: {
+            path: "/similar-products",
+            method: "GET",
+            description: "Get similar products",
+            tags: ["Product", "Similar-Product"],
+        },
+    })
+        .input(z.object({
+        productId: z.number(),
+    }))
+        .output(similarProductsOutput)
+        .query(async ({ ctx, input }) => {
+        const baseProduct = await ctx.prisma.product.findUnique({
+            where: { id: input.productId },
+            include: { tags: true },
+        });
+        if (!baseProduct) {
+            throw new Error("Product not found");
+        }
+        const price = Number(baseProduct.price);
+        const priceMin = price * 0.7;
+        const priceMax = price * 1.3;
+        const tagIds = baseProduct.tags.map((t) => t.tagId);
+        const products = await ctx.prisma.product.findMany({
+            where: {
+                id: { not: input.productId },
+                OR: [
+                    { categoryId: baseProduct.categoryId },
+                    ...(baseProduct.brandId
+                        ? [{ brandId: baseProduct.brandId }]
+                        : []),
+                    {
+                        tags: {
+                            some: { tagId: { in: tagIds } },
+                        },
+                    },
+                    {
+                        price: {
+                            gte: priceMin,
+                            lte: priceMax,
+                        },
+                    },
+                ],
+            },
+            include: {
+                category: true,
+                brand: true,
+                tags: {
+                    include: { tag: true },
+                },
+            },
+            orderBy: [{ rating: "desc" }, { createdAt: "desc" }],
+            take: 8,
+        });
+        const mappedProducts = products.map((p) => {
+            const price = Number(p.price);
+            const discountPercentage = p.discountPercentage ?? 0;
+            const discountedPrice = Number((price * (1 - discountPercentage / 100)).toFixed(2));
+            return {
+                id: p.id,
+                title: p.title,
+                price,
+                category: p.category ?? null,
+                brand: p.brand ?? null,
+                thumbnail: p.thumbnail ?? "",
+                discountPercentage,
+                stock: p.stock,
+                rating: p.rating ?? 0,
+                brandName: p.brand?.name ?? "",
+                tags: p.tags?.map((t) => t.tag) ?? [],
+                discountedPrice,
+            };
+        });
+        return {
+            products: mappedProducts,
+        };
+    }),
 });
-// get filters data

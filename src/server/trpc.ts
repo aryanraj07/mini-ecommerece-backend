@@ -12,6 +12,7 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
       code: "UNAUTHORIZED",
     });
   }
+
   return next({
     ctx: {
       ...ctx,

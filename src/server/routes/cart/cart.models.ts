@@ -1,14 +1,5 @@
 import z, { number } from "zod";
-import { productModel, productPreviewModal } from "../product/models.js";
-
-export const cartProductModel = productModel.pick({
-  id: true,
-  title: true,
-  price: true,
-  discountPercentage: true,
-  thumbnail: true,
-  stock: true,
-});
+import { productModel } from "../product/models.js";
 
 export const cartSummary = z.object({
   total: z.number(),
@@ -16,6 +7,7 @@ export const cartSummary = z.object({
   payable: z.number(),
 });
 export const cartItemModel = z.object({
+  id: z.number(),
   quantity: z.number().int().min(1),
   productId: z.number(),
   title: z.string(),
@@ -31,5 +23,4 @@ export const cartItemModel = z.object({
 export type CartItem = z.infer<typeof cartItemModel>;
 export const getCartItemsOutput = z.object({
   cartItem: z.array(cartItemModel),
-  summary: cartSummary,
 });

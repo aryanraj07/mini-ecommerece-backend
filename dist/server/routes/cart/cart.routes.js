@@ -1,7 +1,7 @@
 import z from "zod";
 import { protectedProcedure, publicProcedure, router } from "../../trpc.js";
 import { simpleMessageResponse } from "../users/model.js";
-import { cartItemModel, getCartItemsOutput, } from "./cart.models.js";
+import { cartItemModel, cartSummary, getCartItemsOutput, } from "./cart.models.js";
 export const cartRouter = router({
     addToCart: publicProcedure
         .meta({
@@ -19,7 +19,10 @@ export const cartRouter = router({
         .output(simpleMessageResponse)
         .mutation(async ({ ctx, input }) => {
         const { productId, quantity } = input;
+        console.log(productId);
+        console.log(quantity);
         if (ctx.user) {
+            console.log("Logging in user");
             await ctx.prisma.cartItem.upsert({
                 where: {
                     userId_productId: {
@@ -38,6 +41,7 @@ export const cartRouter = router({
             });
         }
         else {
+            console.log("Logging in guest");
             await ctx.prisma.cartItem.upsert({
                 where: {
                     guestId_productId: {
@@ -101,6 +105,7 @@ export const cartRouter = router({
                 discount += ((price * discountPercentage) / 100) * item.quantity;
             }
             return {
+                id: item.id,
                 productId: item.product.id,
                 quantity: item.quantity,
                 title: item.product.title,
@@ -122,21 +127,59 @@ export const cartRouter = router({
             },
         };
     }),
+    getCartSummary: publicProcedure
+        .input(z.object({
+        cartItemIds: z.array(z.number()),
+    }))
+        .output(cartSummary)
+        .query(async ({ ctx, input }) => {
+        const whereCondition = ctx.user
+            ? { userId: ctx.user.id }
+            : { guestId: ctx.guestId };
+        const cartItems = await ctx.prisma.cartItem.findMany({
+            where: {
+                ...whereCondition,
+                id: { in: input.cartItemIds },
+            },
+            include: {
+                product: true,
+            },
+        });
+        let total = 0;
+        let discount = 0;
+        cartItems.forEach((item) => {
+            const price = Number(item.product.price);
+            if (item.product.discountPercentage) {
+            }
+            total += price * item.quantity;
+            if (item.product.discountPercentage) {
+                discount +=
+                    ((Number(item.product.price) * item.product.discountPercentage) /
+                        100) *
+                        item.quantity;
+            }
+        });
+        return {
+            total,
+            discount,
+            payable: total - discount,
+        };
+    }),
     removeFromCart: publicProcedure
         .meta({
         openapi: {
             method: "DELETE",
-            path: "/cart/{productId}",
+            path: "/cart/{cartItemId}",
             description: "Remove from cart",
             tags: ["Product", "Cart"],
         },
     })
-        .input(z.object({ productId: z.number() }))
+        .input(z.object({ cartItemId: z.number() }))
         .output(simpleMessageResponse)
         .mutation(async ({ ctx, input }) => {
         const whereCondition = ctx.user
-            ? { userId: ctx.user.id, productId: input.productId }
-            : { guestId: ctx.guestId, productId: input.productId };
+            ? { userId: ctx.user.id, id: input.cartItemId }
+            : { guestId: ctx.guestId, id: input.cartItemId };
         await ctx.prisma.cartItem.deleteMany({
             where: whereCondition,
         });
@@ -146,20 +189,20 @@ export const cartRouter = router({
         .meta({
         openapi: {
             method: "PATCH",
-            path: "/cart/{productId}",
+            path: "/cart/{cartItemId}",
             description: "Update cart item",
             tags: ["Product", "Cart"],
         },
     })
         .input(z.object({
-        productId: z.number(),
+        cartItemId: z.number(),
         quantity: z.number().min(1).default(1),
     }))
         .output(simpleMessageResponse)
         .mutation(async ({ ctx, input }) => {
         const whereCondition = ctx.user
-            ? { userId: ctx.user.id, productId: input.productId }
-            : { guestId: ctx.guestId, productId: input.productId };
+            ? { userId: ctx.user.id, id: input.cartItemId }
+            : { guestId: ctx.guestId, id: input.cartItemId };
         await ctx.prisma.cartItem.updateMany({
             where: whereCondition,
             data: {

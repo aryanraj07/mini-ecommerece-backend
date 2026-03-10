@@ -1,11 +1,10 @@
 import z from "zod";
 import { protectedProcedure, publicProcedure, router } from "../../trpc.js";
 import { simpleMessageResponse } from "../users/model.js";
-import { getWishListItemsOutput } from "./wishlist.model.js";
 import { productPreviewModal } from "../product/models.js";
 
 export const wishListRouter = router({
-  addToWishlist: protectedProcedure
+  addToWishlist: publicProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -21,22 +20,38 @@ export const wishListRouter = router({
     )
     .output(simpleMessageResponse)
     .mutation(async ({ ctx, input }) => {
-      await ctx.prisma.wishlistItem.upsert({
-        where: {
-          userId_productId: {
+      if (ctx.user) {
+        await ctx.prisma.wishlistItem.upsert({
+          where: {
+            userId_productId: {
+              userId: ctx.user.id,
+              productId: input.productId,
+            },
+          },
+          update: {},
+          create: {
             userId: ctx.user.id,
             productId: input.productId,
           },
-        },
-        update: {},
-        create: {
-          userId: ctx.user.id,
-          productId: input.productId,
-        },
-      });
+        });
+      } else {
+        await ctx.prisma.wishlistItem.upsert({
+          where: {
+            guestId_productId: {
+              guestId: ctx.guestId!,
+              productId: input.productId,
+            },
+          },
+          update: {},
+          create: {
+            guestId: ctx.guestId!,
+            productId: input.productId,
+          },
+        });
+      }
       return { message: "Added to wishlist" };
     }),
-  removeFromWishList: protectedProcedure
+  removeFromWishList: publicProcedure
     .meta({
       openapi: {
         method: "DELETE",
@@ -48,15 +63,24 @@ export const wishListRouter = router({
     .input(z.object({ productId: z.number() }))
     .output(simpleMessageResponse)
     .mutation(async ({ ctx, input }) => {
-      await ctx.prisma.wishlistItem.deleteMany({
-        where: {
-          productId: input.productId,
-          userId: ctx.user.id,
-        },
-      });
+      if (ctx.user) {
+        await ctx.prisma.wishlistItem.deleteMany({
+          where: {
+            productId: input.productId,
+            userId: ctx.user.id,
+          },
+        });
+      } else {
+        await ctx.prisma.wishlistItem.deleteMany({
+          where: {
+            productId: input.productId,
+            guestId: ctx.guestId,
+          },
+        });
+      }
       return { message: "Removed from wishlist" };
     }),
-  getWishlist: protectedProcedure
+  getWishlist: publicProcedure
     .meta({
       openapi: {
         method: "GET",
@@ -64,52 +88,22 @@ export const wishListRouter = router({
         tags: ["Wishlist"],
       },
     })
-    .output(z.array(productPreviewModal))
+    .output(z.array(z.number()))
     .query(async ({ ctx }) => {
-      const items = ctx.prisma.wishlistItem.findMany({
-        where: {
-          userId: ctx.user.id,
-        },
-        include: {
-          product: {
-            select: {
-              id: true,
-              title: true,
-              price: true,
-              discountPercentage: true,
-              thumbnail: true,
-              stock: true,
-              rating: true,
-              brand: {
-                select: { name: true },
-              },
-            },
-          },
+      const whereCondition = ctx.user
+        ? { userId: ctx.user.id }
+        : { guestId: ctx.guestId! };
+
+      const items = await ctx.prisma.wishlistItem.findMany({
+        where: whereCondition,
+        select: {
+          productId: true,
         },
       });
 
-      return (await items).map((item) => {
-        const price = Number(item.product.price);
-        const discountPercentage = item.product.discountPercentage ?? 0;
-
-        const discountedPrice = Number(
-          (price * (1 - discountPercentage / 100)).toFixed(2),
-        );
-
-        return {
-          id: item.product.id,
-          title: item.product.title,
-          price: Number(item.product.price),
-          discountPercentage: discountPercentage,
-          discountedPrice: discountedPrice,
-          thumbnail: item.product.thumbnail ?? "",
-          stock: item.product.stock,
-          rating: item.product.rating ?? 0,
-          brandName: item.product.brand?.name ?? "",
-        };
-      });
+      return items.map((item) => item.productId);
     }),
-  mergeWishlist: protectedProcedure
+  mergeWishlist: publicProcedure
     .meta({
       openapi: {
         method: "POST",
@@ -118,28 +112,42 @@ export const wishListRouter = router({
         tags: ["Wishlist"],
       },
     })
-    .input(
-      z.object({
-        productIds: z.array(z.number()),
-      }),
-    )
     .output(simpleMessageResponse)
     .mutation(async ({ ctx, input }) => {
-      for (const productId of input.productIds) {
-        await ctx.prisma.wishlistItem.upsert({
-          where: {
-            userId_productId: {
-              userId: ctx.user.id,
-              productId,
-            },
-          },
-          update: {},
-          create: {
-            userId: ctx.user.id,
-            productId,
-          },
-        });
+      if (!ctx.user || !ctx.guestId) {
+        return { message: "Nothing to merge" };
       }
+      const user = ctx.user;
+      const guestId = ctx.guestId;
+      const guestItems = await ctx.prisma.wishlistItem.findMany({
+        where: {
+          guestId,
+        },
+      });
+      await ctx.prisma.$transaction(
+        guestItems.map((item) =>
+          ctx.prisma.wishlistItem.upsert({
+            where: {
+              userId_productId: {
+                userId: user.id,
+                productId: item.productId,
+              },
+            },
+            update: {},
+            create: {
+              userId: user.id,
+              productId: item.productId,
+            },
+          }),
+        ),
+      );
+
+      await ctx.prisma.wishlistItem.deleteMany({
+        where: {
+          guestId: ctx.guestId,
+        },
+      });
+      ctx.res.clearCookie("guestId");
       return { message: "Wishlist merged" };
     }),
 });

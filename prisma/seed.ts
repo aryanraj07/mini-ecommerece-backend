@@ -1,190 +1,179 @@
-import "dotenv/config";
-import { faker } from "@faker-js/faker";
+import { PrismaClient } from "@prisma/client";
+import slugify from "slugify";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { PrismaClient, Prisma } from "@prisma/client";
 
 const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
+  connectionString: process.env.DATABASE_URL,
+});
+const prisma = new PrismaClient({
+  adapter,
 });
 
-const prisma = new PrismaClient({ adapter });
+async function main() {
+  console.log("Seeding database...");
 
-const FAKE_COUNT = 3000;
+  /* ---------------- SELLER ---------------- */
 
-async function fetchAllProducts() {
-  const all: any[] = [];
+  const seller = await prisma.seller.create({
+    data: {
+      name: "Dummy Store",
+      email: "store@dummy.com",
+      rating: 4.5,
+      location: "Global",
+    },
+  });
+
+  /* ---------------- FETCH PRODUCTS ---------------- */
+  const limit = 100;
   let skip = 0;
-  const limit = 50;
+  let products: any[] = [];
+  // const res = await fetch("https://dummyjson.com/products?limit=100");
+  // const data = await res.json();
 
+  // const products = data.products;
+
+  /* ---------------- CATEGORIES ---------------- */
   while (true) {
     const res = await fetch(
       `https://dummyjson.com/products?limit=${limit}&skip=${skip}`,
     );
-    const json = await res.json();
-
-    all.push(...json.products);
-
+    const data = await res.json();
+    products.push(...data.products);
+    if (data.products.length < limit) break;
     skip += limit;
-    if (skip >= json.total) break;
   }
 
-  return all;
-}
+  const categoriesMap = new Map<string, number>();
 
-async function main() {
-  console.log("🌱 Seeding started...");
+  for (const p of products) {
+    if (!categoriesMap.has(p.category)) {
+      const cat = await prisma.category.upsert({
+        where: { slug: slugify(p.category, { lower: true }) },
+        update: {},
+        create: {
+          name: p.category,
+          slug: slugify(p.category, { lower: true }),
+        },
+      });
 
-  ////////////////////////////////////////
-  // EXTRA DATA
-  ////////////////////////////////////////
-
-  const extraCategories = [
-    "Furniture",
-    "Electronics",
-    "Fashion",
-    "Kitchen",
-    "Office",
-    "Sports",
-    "Gaming",
-    "Decor",
-    "Lighting",
-    "Outdoor",
-  ];
-
-  const extraBrands = [
-    "IKEA",
-    "Nilkamal",
-    "Godrej",
-    "Samsung",
-    "Apple",
-    "Boat",
-    "Sony",
-    "Wakefit",
-    "UrbanLadder",
-    "HomeTown",
-  ];
-
-  const extraTags = [
-    "New",
-    "Trending",
-    "Best Seller",
-    "Limited",
-    "Premium",
-    "Budget",
-    "Luxury",
-    "Eco",
-    "Compact",
-    "Smart",
-  ];
-
-  await prisma.category.createMany({
-    data: extraCategories.map((name) => ({ name })),
-    skipDuplicates: true,
-  });
-
-  await prisma.brand.createMany({
-    data: extraBrands.map((name) => ({ name })),
-    skipDuplicates: true,
-  });
-
-  await prisma.tag.createMany({
-    data: extraTags.map((name) => ({ name })),
-    skipDuplicates: true,
-  });
-
-  ////////////////////////////////////////
-  // REAL PRODUCTS
-  ////////////////////////////////////////
-
-  const realProducts = await fetchAllProducts();
-
-  const categories = [...new Set(realProducts.map((p) => p.category))];
-  const brands = [...new Set(realProducts.map((p) => p.brand).filter(Boolean))];
-
-  await prisma.category.createMany({
-    data: categories.map((name) => ({ name })),
-    skipDuplicates: true,
-  });
-
-  await prisma.brand.createMany({
-    data: brands.map((name) => ({ name })),
-    skipDuplicates: true,
-  });
-
-  const allCategories = await prisma.category.findMany();
-  const allBrands = await prisma.brand.findMany();
-  const allTags = await prisma.tag.findMany();
-
-  const categoryMap = Object.fromEntries(
-    allCategories.map((c) => [c.name, c.id]),
-  );
-  const brandMap = Object.fromEntries(allBrands.map((b) => [b.name, b.id]));
-
-  const categoryIds = allCategories.map((c) => c.id);
-  const brandIds = allBrands.map((b) => b.id);
-  const tagIds = allTags.map((t) => t.id);
-
-  ////////////////////////////////////////
-  // PRODUCTS
-  ////////////////////////////////////////
-
-  const formatted: Prisma.ProductCreateManyInput[] = [];
-
-  // ✅ REAL
-  realProducts.forEach((p, i) => {
-    formatted.push({
-      title: p.title,
-      description: p.description,
-      price: new Prisma.Decimal(p.price),
-      discountPercentage: p.discountPercentage,
-      rating: p.rating,
-      stock: p.stock,
-      sku: p.sku ?? `SKU-${i}`,
-      images: p.images,
-      thumbnail: p.thumbnail,
-      categoryId: categoryMap[p.category],
-      brandId: brandMap[p.brand],
-    });
-  });
-
-  // ✅ FAKE
-  const remaining = FAKE_COUNT - formatted.length;
-
-  for (let i = 0; i < remaining; i++) {
-    formatted.push({
-      title: faker.commerce.productName(),
-      description: faker.commerce.productDescription(),
-      price: new Prisma.Decimal(faker.number.int({ min: 500, max: 50000 })),
-      discountPercentage: faker.number.int({ min: 5, max: 50 }),
-      rating: faker.number.float({ min: 2, max: 5, fractionDigits: 1 }),
-      stock: faker.number.int({ min: 0, max: 300 }),
-      sku: faker.string.alphanumeric(10),
-      images: [faker.image.urlPicsumPhotos({ width: 900, height: 900 })],
-      thumbnail: faker.image.urlPicsumPhotos({ width: 400, height: 400 }),
-      categoryId: faker.helpers.arrayElement(categoryIds),
-      brandId: faker.helpers.arrayElement(brandIds),
-    });
+      categoriesMap.set(p.category, cat.id);
+    }
   }
 
-  await prisma.product.createMany({ data: formatted });
+  /* ---------------- BRANDS ---------------- */
 
-  ////////////////////////////////////////
-  // TAG LINKS
-  ////////////////////////////////////////
+  const brandsMap = new Map<string, number>();
 
-  const dbProducts = await prisma.product.findMany({ select: { id: true } });
+  for (const p of products) {
+    if (p.brand && !brandsMap.has(p.brand)) {
+      const brand = await prisma.brand.create({
+        data: {
+          name: p.brand,
+          slug: slugify(p.brand, { lower: true }),
+        },
+      });
 
-  const links: Prisma.ProductTagCreateManyInput[] = [];
+      brandsMap.set(p.brand, brand.id);
+    }
+  }
 
-  dbProducts.forEach((p) => {
-    faker.helpers.arrayElements(tagIds, { min: 1, max: 4 }).forEach((tagId) => {
-      links.push({ productId: p.id, tagId });
+  /* ---------------- TAGS ---------------- */
+
+  const tagsMap = new Map<string, number>();
+
+  for (const p of products) {
+    for (const tag of p.tags) {
+      if (!tagsMap.has(tag)) {
+        const created = await prisma.tag.create({
+          data: { name: tag },
+        });
+
+        tagsMap.set(tag, created.id);
+      }
+    }
+  }
+
+  /* ---------------- PRODUCTS ---------------- */
+
+  for (const p of products) {
+    const product = await prisma.product.create({
+      data: {
+        title: p.title,
+        slug: `${slugify(p.title, { lower: true })}-${p.id}`,
+        description: p.description,
+
+        categoryId: categoriesMap.get(p.category)!,
+        sellerId: seller.id,
+
+        price: p.price,
+        discountPercentage: p.discountPercentage,
+
+        rating: p.rating,
+        totalReviews: p.reviews?.length ?? 0,
+
+        stock: p.stock,
+
+        sku: p.sku,
+
+        brandId: p.brand ? brandsMap.get(p.brand) : null,
+
+        weight: p.weight,
+
+        dimensions: p.dimensions,
+
+        returnPolicy: p.returnPolicy,
+        warrantyInformation: p.warrantyInformation,
+        shippingInformation: p.shippingInformation,
+
+        minimumOrderQuantity: p.minimumOrderQuantity,
+
+        availabilityStatus: p.availabilityStatus,
+
+        thumbnail: p.thumbnail,
+        images: p.images,
+
+        meta: p.meta,
+      },
     });
-  });
 
-  await prisma.productTag.createMany({ data: links });
+    /* ---------------- PRODUCT TAGS ---------------- */
 
-  console.log("✅ Seed finished with 3000 products");
+    for (const tag of p.tags) {
+      const tagId = tagsMap.get(tag)!;
+
+      await prisma.productTag.create({
+        data: {
+          productId: product.id,
+          tagId: tagId,
+        },
+      });
+    }
+
+    /* ---------------- REVIEWS ---------------- */
+
+    if (p.reviews) {
+      for (const review of p.reviews) {
+        await prisma.review.create({
+          data: {
+            rating: review.rating,
+            comment: review.comment,
+            reviewerName: review.reviewerName,
+            reviewerEmail: review.reviewerEmail,
+            productId: product.id,
+          },
+        });
+      }
+    }
+  }
+
+  console.log("Seeding finished");
 }
 
-main().finally(() => prisma.$disconnect());
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

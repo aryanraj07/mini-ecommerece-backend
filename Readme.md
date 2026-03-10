@@ -340,3 +340,40 @@ Webhook
 Update Order to SUCCESS
 ↓
 Clear User Cart
+
+Cart → Checkout → Create Order (PENDING)
+↓
+Create Razorpay Order
+↓
+Open Razorpay on frontend
+↓
+Payment success → Verify signature
+↓
+Update Order → SUCCESS
+Reduce Stock
+Clear Cart
+
+## ngrock secret codes
+
+UBFYSYZBPF
+ZFEEAN88FT
+WYTUC6R4N5
+R7FWNHDDKB
+QQXBCZTZBX
+7AVSVCS59P
+ED3P3HX8FK
+7HMHPK9FQY
+GCCHWVGS2Q
+YB2XAHJF5U
+
+### Next Step
+
+> Make success page fetch real order
+
+> Build user order history
+
+Build admin dashboard
+
+Add email notifications
+
+Add order lifecycle management
