@@ -125,6 +125,7 @@ app.use("/trpc", trpcExpress.createExpressMiddleware({
     router: appRouter,
     createContext,
 }));
-app.listen(8000, () => {
-    console.log("Server is listening on port 8000");
+const PORT = Number(process.env.PORT) || 8000;
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on port ${PORT}`);
 });
