@@ -1,5 +1,4 @@
 import z from "zod";
-import { brandModel } from "../product/models.js";
 export const filterOptionModel = z.object({
     value: z.string().nullable().describe("Display value"),
     count: z.number().int().describe("Number of products available"),

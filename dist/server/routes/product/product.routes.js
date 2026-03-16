@@ -1,6 +1,6 @@
-import z, { number } from "zod";
+import z from "zod";
 import { router, publicProcedure } from "../../trpc.js";
-import { getAllProductOutput, getSingleProductOutput, productModel, productPreviewModal, similarProductsOutput, } from "./models.js";
+import { getAllProductOutput, getSingleProductOutput, similarProductsOutput, } from "./models.js";
 import { TRPCError } from "@trpc/server";
 export const productRouter = router({
     getAllProducts: publicProcedure

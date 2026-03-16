@@ -1,8 +1,6 @@
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import * as trpcExpress from "@trpc/server/adapters/express";
-import jwt, {} from "jsonwebtoken";
 import { randomUUID } from "node:crypto";
 import { getUserFromToken } from "../helper/authHelper.js";
 const adapter = new PrismaPg({

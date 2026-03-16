@@ -1,10 +1,8 @@
 import { TRPCError } from "@trpc/server";
-import crypto from "crypto";
 import { protectedProcedure, router } from "../../trpc.js";
 import z from "zod";
 import { razorpay } from "../../../lib/razorpay.js";
-import { simpleMessageResponse } from "../users/model.js";
-import { checkoutResponse, myOrdersResponse, orderItemSchema, orderSchema, } from "./order.model.js";
+import { checkoutResponse, myOrdersResponse, orderSchema, } from "./order.model.js";
 export const orderRouter = router({
     checkout: protectedProcedure
         .meta({

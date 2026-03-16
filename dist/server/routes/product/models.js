@@ -85,7 +85,6 @@ export const getSingleProductOutput = z.object({
 export const similarProductsOutput = z.object({
     products: z.array(productPreviewModal),
 });
-import { Prisma } from "@prisma/client";
 //************************* */
 // Filter data
 // for category brand and tag

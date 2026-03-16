@@ -1,7 +1,6 @@
 import z from "zod";
-import { protectedProcedure, publicProcedure, router } from "../../trpc.js";
+import { publicProcedure, router } from "../../trpc.js";
 import { simpleMessageResponse } from "../users/model.js";
-import { productPreviewModal } from "../product/models.js";
 export const wishListRouter = router({
     addToWishlist: publicProcedure
         .meta({

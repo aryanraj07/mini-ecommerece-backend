@@ -1,5 +1,4 @@
-import z, { number } from "zod";
-import { productModel } from "../product/models.js";
+import z from "zod";
 export const cartSummary = z.object({
     total: z.number(),
     discount: z.number(),

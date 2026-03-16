@@ -1,7 +1,7 @@
 import z from "zod";
 import { protectedProcedure, publicProcedure, router } from "../../trpc.js";
 import { simpleMessageResponse } from "../users/model.js";
-import { cartItemModel, cartSummary, getCartItemsOutput, } from "./cart.models.js";
+import { cartSummary, getCartItemsOutput, } from "./cart.models.js";
 export const cartRouter = router({
     addToCart: publicProcedure
         .meta({

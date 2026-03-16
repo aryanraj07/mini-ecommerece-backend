@@ -1,4 +1,3 @@
-import z from "zod";
 import { protectedProcedure, publicProcedure, router } from "../../trpc.js";
 import { getUser, sendOtpSchema, simpleMessageResponse, verifyOtpSchema, } from "./model.js";
 import bcrypt from "bcryptjs";

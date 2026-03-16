@@ -1,5 +1,4 @@
 import { initTRPC, TRPCError } from "@trpc/server";
-import jwt from "jsonwebtoken";
 const t = initTRPC.context().meta().create();
 export const router = t.router;
 export const publicProcedure = t.procedure;
