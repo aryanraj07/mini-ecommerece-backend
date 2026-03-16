@@ -2,6 +2,7 @@ import express from "express";
 import * as trpcExpress from "@trpc/server/adapters/express";
 import { createContext } from "./server/context.js";
 import crypto from "crypto";
+
 import { appRouter } from "./server/index.js";
 import cookieParser from "cookie-parser";
 
@@ -149,7 +150,8 @@ app.use(
     createContext,
   }),
 );
+const PORT = Number(process.env.PORT) || 8000;
 
-app.listen(8000, () => {
-  console.log("Server is listening on port 8000");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
