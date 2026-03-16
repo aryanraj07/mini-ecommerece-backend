@@ -14,12 +14,14 @@ async function main() {
 
   /* ---------------- SELLER ---------------- */
 
-  const seller = await prisma.seller.create({
-    data: {
-      name: "Dummy Store",
-      email: "store@dummy.com",
-      rating: 4.5,
-      location: "Global",
+  const seller = await prisma.seller.upsert({
+    where: { email: "seller@example.com" },
+    update: {},
+    create: {
+      name: "Amazon",
+      email: "seller@example.com",
+      rating: 4.8,
+      location: "USA",
     },
   });
 

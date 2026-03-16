@@ -4,14 +4,21 @@ import { createContext } from "./server/context.js";
 import crypto from "crypto";
 import { appRouter } from "./server/index.js";
 import cookieParser from "cookie-parser";
+
 import {
   generateOpenApiDocument,
   createOpenApiExpressMiddleware,
 } from "trpc-to-openapi";
 import fs from "fs/promises";
+import fss from "fs";
+
 import cors from "cors";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
+
+const ssl = {
+  ca: fss.readFileSync("./ca.pem").toString(),
+};
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL!,
 });

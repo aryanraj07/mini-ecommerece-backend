@@ -68,6 +68,8 @@ const prisma = new PrismaClient({
 });
 ```
 
+# DATABASE_URL="postgresql://aryanraj:Aryan%4017aman@localhost:5432/miniecommerce"
+
 ## Migration of schema into db
 
 >
