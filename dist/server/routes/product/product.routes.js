@@ -76,6 +76,7 @@ export const productRouter = router({
             }
         })();
         // query
+        console.time("resolver");
         const rawProducts = await ctx.prisma.product.findMany({
             where,
             skip: (page - 1) * limit,
@@ -93,6 +94,7 @@ export const productRouter = router({
             },
         });
         const total = await ctx.prisma.product.count({ where });
+        console.time("resolver");
         const products = rawProducts.map((p) => {
             const price = Number(p.price);
             const discountPercentage = p.discountPercentage ?? 0;
