@@ -30,7 +30,7 @@ const prisma = new PrismaClient({
 const app = express();
 const allowedOrigins = [
   "http://localhost:3000",
-  "https://your-frontend-domain.com",
+  "https://mini-ecommerce-full-mini-ecommerce.vercel.app",
 ];
 app.use(
   cors({

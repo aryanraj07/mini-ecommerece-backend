@@ -116,16 +116,29 @@ export const userRouter = router({
         });
         // set cookies
         // secure way
+        // ctx.res.cookie("accessToken", accessToken, {
+        //   httpOnly: true,
+        //   secure: false,
+        //   sameSite: "lax",
+        //   maxAge: 1 * 60 * 1000,
+        // });
+        // ctx.res.cookie("refreshToken", refreshToken, {
+        //   httpOnly: true,
+        //   secure: false,
+        //   sameSite: "lax",
+        //   maxAge: 30 * 24 * 60 * 60 * 1000,
+        // });
+        const isProd = process.env.NODE_ENV === "production";
         ctx.res.cookie("accessToken", accessToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
             maxAge: 1 * 60 * 1000,
         });
         ctx.res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
             maxAge: 30 * 24 * 60 * 60 * 1000,
         });
         return {
@@ -166,11 +179,12 @@ export const userRouter = router({
                 throw new TRPCError({ code: "UNAUTHORIZED" });
             }
             const newAccessToken = generateAccessToken(payload.userId);
+            const isProd = process.env.NODE_ENV === "production";
             ctx.res.cookie("accessToken", newAccessToken, {
                 httpOnly: true,
-                secure: false, // true in production
-                sameSite: "lax",
-                maxAge: 24 * 60 * 60 * 1000,
+                secure: isProd,
+                sameSite: isProd ? "none" : "lax",
+                maxAge: 1 * 60 * 1000,
             });
         }
         catch (err) {
